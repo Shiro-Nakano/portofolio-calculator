@@ -26,8 +26,8 @@ import { NumberFormatter } from "./NumberFormatter";
 import { Config } from "./Config";
 
 // イーナム
-import { CalcState } from "./enums/CalcSate";
-import { Operation } from "./enums/Operation";
+import { CalcState } from "./Enums/CalcState";
+import { Operation } from "./Enums/Operation";
 // 型エイリアス
 import type { KeyToken } from "./TypeAlias/KeyToken";
 
