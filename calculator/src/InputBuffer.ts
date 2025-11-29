@@ -12,8 +12,11 @@
  * -maxDigits              number  :認められる最大桁数（仕様書：８行）
  */
 
-// 最大桁数の引用のため
+
+// クラスのimport
+// ↓最大桁数の引用のため
 import { Config } from "./Config";
+
 
 export class InputBuffer {
     // privateのプロパティ
@@ -40,7 +43,7 @@ export class InputBuffer {
      */
     public pushDigit(d: number): void {
         // 引数dが0~9までの数字の場合
-        if (d > 0 || d < 9) {
+        if (d >= 0 && d <= 9) {
             return;
         }
         // 桁数制限のチェック
