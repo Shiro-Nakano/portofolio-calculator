@@ -11,8 +11,13 @@
     "test:ui": "vitest --ui"
   },
   "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitest/ui": "^4.0.14",
+    "jsdom": "^27.2.0",
     "typescript": "~5.9.3",
-    "vite": "npm:rolldown-vite@7.2.5"
+    "vite": "npm:rolldown-vite@7.2.5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.14"
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5"
