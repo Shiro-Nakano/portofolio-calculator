@@ -23,7 +23,6 @@ import type { IDisplay } from "../src/Display/IDisplay";
 import { InputBuffer } from "./InputBuffer";
 import { Evaluator } from "./Evaluator";
 import { NumberFormatter } from "./NumberFormatter";
-import { Config } from "./Config";
 
 // イーナム
 import { CalcState } from "./Enums/CalcState";
@@ -40,7 +39,7 @@ export class Calculator {
    // ⭐️仕様書ヒント
     constructor(
         private readonly display: IDisplay,
-        private readonly formatter = new NumberFormatter(Config.MAX_DIGITS),
+        private readonly formatter = new NumberFormatter(),
         // ⭐️なぜconfig.ERROR~ではないのか
         private readonly evaluator = new Evaluator(),
         private readonly buffer = new InputBuffer()
