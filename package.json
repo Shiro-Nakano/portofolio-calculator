@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@vitest/ui": "^4.0.14",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.0.14"
-  }
-}
