@@ -1,21 +1,23 @@
 /** 
  * クラス：Calculator :アプリの制御（状態遷移と評価タイミング）
  * 【Private】
- * -state: CalcState               状態
- * -left: number|null              
- * -operator: Operation | null     
- * -buffer: InputBuffer            
- * -evaluator: Evaluator           計算
- * -formatter: NumberFormatter     表示文字列の形成
- * -display: IDisplay              描画
+ * -state: CalcState              　　　　　 状態
+ * -left: number|null              　　　　　左辺の数字
+ * -operator: Operation | null     　　　　　演算子
+ * -buffer: InputBuffer            　　　　　バッファー
+ * -evaluator: Evaluator           　　　　　計算
+ * -formatter: NumberFormatter     　　　　　表示文字列の形成
+ * -display: IDisplay              　　　　　描画
  * 
  * 【Public】
- * +handleDigit(d: number):void
- * +handleDecimalPoint(): void
+ * +handle 
+ * +handleDigit(d: number):void    
+ * +handleDecimalPoint(): void             小数点押下時の動作
  * +handleOperator(op: Operation): void
  * +handleEqual(): void
  * +handleClear: void
  */
+
 
 // クラスのimport
 // 各クラス
@@ -36,14 +38,16 @@ export class Calculator {
     private state: CalcState = CalcState.ready;
     private left: number | null = null;
     private operatorType: Operation | null = null;
-   // ⭐️仕様書ヒント
+
     constructor(
         private readonly display: IDisplay,
         private readonly formatter = new NumberFormatter(),
-        // ⭐️なぜconfig.ERROR~ではないのか
         private readonly evaluator = new Evaluator(),
         private readonly buffer = new InputBuffer()
-    ) {}
+    ) {    
+            this.display.render(this.buffer.toString()
+        );
+    }
 
   // KeyToken→Operatorに変更
     private operator(token: KeyToken): Operation | null {
@@ -57,7 +61,9 @@ export class Calculator {
     }
 
     // 【Public】
-    /** メイン入り口：Token を適切なハンドラへ委譲 */
+    /** 
+     * KeyTokenを適切なハンドラへ渡す
+    */
     public handle(token: KeyToken): void {
     // ⭐️FirstInputのマイナスを追加
         if (token >= "0" && token <= "9") {
@@ -86,9 +92,11 @@ export class Calculator {
         }
     }
 
-    /** ---- 各ハンドラ ---- */
+    // 各ハンドラーの具体的な動作内容
 
-    /** 数字キー */
+    /** 
+     * 数字キー 押下時
+     */
     public handleDigit(d: number): void {
         if (this.state === CalcState.ResultShown) {
             this.buffer.clear();
@@ -104,32 +112,37 @@ export class Calculator {
         }
     }
 
-    /** 小数点 */
+    /** 
+     * 小数点キー押下時
+     */
     public handleDecimalPoint(): void {
         this.buffer.pushDecimal();
         this.display.render(this.buffer.toString());
     }
 
-    // 演算子
+    /** 
+     * 演算子キー押下時
+     */
     public handleOperator(op: Operation): void {
         if (this.state === CalcState.InputtingFirst) {
             this.left = this.buffer.toNumber();
             this.buffer.clear();
-        }
-
-        if (this.state === CalcState.InputtingSecond) {
+            this.state = CalcState.OperatorEntered;
+        } else if (this.state === CalcState.OperatorEntered) {
+            // 2回目の演算子押下時
             const right = this.buffer.toNumber();
             const result = this.evaluator.compute(this.left!, this.operatorType!, right);
             this.left = result;
             this.display.render(this.formatter.formatForDisplay(result));
             this.buffer.clear();
         }
-
         this.operatorType = op;
-        this.state = CalcState.OperatorEntered;
     }
+    
 
-    //= :イコール
+    /** 
+     * イコールキー押下時
+     */
     public handleEqual(): void {
         if (!this.operatorType || this.left === null) return;
 
@@ -141,7 +154,9 @@ export class Calculator {
         this.state = CalcState.ResultShown;
     }
 
-    // C :クリア
+    /** 
+     * クリアーキー押下時
+     */
     public handleClear(): void {
         this.buffer.clear();
         this.display.render("0");
