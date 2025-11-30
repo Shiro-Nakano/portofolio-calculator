@@ -150,7 +150,15 @@ export class Calculator {
      * イコールキー押下時の処理
      */
     public handleEqual(): void {
-        if (!this.operatorType || this.left === null) return;
+        // すでに結果が表示されている場合は計算しない
+        if(this.state === CalcState.ResultShown){
+            return;
+        }
+
+        // 
+        if (!this.operatorType || this.left === null) {
+            return;
+        }
 
         const right = this.buffer.toNumber();
         // 例外処理：割り算0除算時のエラー
