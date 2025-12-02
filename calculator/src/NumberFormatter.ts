@@ -1,8 +1,8 @@
 /** 
- * クラス：NumberFormatter  : 電卓の表示
+ * クラス：NumberFormatter  :数値を形成するための条件
  * 【Public】
- * +formatForDisplay(n:number)    string    :
- * +fits(n:number)                boolean   :数値が8桁に収まるかどうかの判定
+ * +fits(n:number)                boolean   :入力の桁数
+ * +formatForDisplay(n:number)    string    :ディスプレイのフォーマットの指定するメソッド
  * 【Private】
  * -maxDigits                     number    :認められる最大桁数（仕様書：８行）
  */
@@ -26,6 +26,7 @@ export class NumberFormatter {
 
     // publicのメソッド
     /** 
+     * fis                     入力桁数を指定するメソッド
      * @param   {number}    n  入力した数値
      * @returns {boolean}   　　8桁に収まっているか判定
      */
@@ -37,15 +38,16 @@ export class NumberFormatter {
         return onlyDigits.length <= this.maxDigits;
     }
     /** 
-     * @param   {number}    n  入力した数値
-     * @returns {string}   　　ディスプレイの表示
+     * formatForDisplay         指数標記を指定するメソッド
+     * @param   {number}    n 　押下した数値
+     * @returns {string}        ディスプレイの表示
      */
     public formatForDisplay(n: number): string{
         // 表示が可能な場合　（→ディスプレイに文字列で返す）
         if(this.fits(n)){
             return n.toString();
         }
-        // ⭐︎桁数が収まらない場合の指数表示　桁数の確認
+        // 桁数が収まらない場合：指数表示（先頭1桁 + 小数点4桁 + e+指数で8桁に合わす）
         else{
             return n.toExponential(4);
         }
