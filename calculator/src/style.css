@@ -21,7 +21,9 @@ body{
     margin-bottom: 10px;
     border: none;
     border-radius: 3%;
-
+    position: relative;
+    padding: 5px;
+    box-sizing: border-box;
 }
 #history{
     font-size: 15px;
@@ -30,7 +32,10 @@ body{
 #result-display{
     font-size: 30px;
     text-align: right;
-    padding-top: 10px;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    left: 5px;
 }
 button{
     width: 60px;
