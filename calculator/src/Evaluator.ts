@@ -1,5 +1,5 @@
 /** 
- * クラス　Evaluator
+ * クラス　Evaluator　　:計算処理
  * 【Public】
  * +compute(a: number, op:Operation, b:number)   number  数値a→演算子→数値bを行い、計算結果を返す     
  */
