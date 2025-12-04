@@ -1,8 +1,8 @@
 /** 
  * クラス：Calculator :アプリの制御（状態遷移と評価タイミング）
  * 【Private】
- * -state: CalcState              　　　　　 状態
- * -left: number|null              　　　　　左辺
+ * -state: CalcState              　　　　　 状態の取得
+ * -left: number|null              　　　　　左辺の
  * -operator: Operation | null     　　　　　演算子
  * -buffer: InputBuffer            　　　　　バッファー
  * -evaluator: Evaluator           　　　　　計算
@@ -10,27 +10,23 @@
  * -display: IDisplay              　　　　　描画
  * 
  * 【Public】
- * +handle 
- * +handleDigit(d: number):void    
- * +handleDecimalPoint(): void             小数点押下時の動作
- * +handleOperator(op: Operation): void
- * +handleEqual(): void
- * +handleClear: void
+ * +handle (token: KeyToken).      void.    
+ * +handleDigit(d: number)         void    　 数字ボタン押下時の処理のメソッド
+ * +handleDecimalPoint()           void      小数点ボタン押下時の処理のメソッド
+ * +handleOperator(op: Operation)  void　　　  演算子ボタン押下時の処理のメソッド
+ * +handleEqual()                  void       イコールボタン押下時の処理のメソッド
+ * +handleCalculationError(error: unknown)  void    エラー内容の判定のメソッド
+ * +handleClear()                  void 　 　  クリアボタン押下時の処理のメソッド
  */
 
-
 // クラスのimport
-// 各クラス
 import type { IDisplay } from "../src/Display/IDisplay";
 import { InputBuffer } from "./InputBuffer";
 import { Evaluator } from "./Evaluator";
 import { NumberFormatter } from "./NumberFormatter";
 import { DivideByZero } from "./DivideByZero";
-
-// イーナム
 import { CalcState } from "./Enums/CalcState";
 import { Operation } from "./Enums/Operation";
-// 型エイリアス
 import type { KeyToken } from "./TypeAlias/KeyToken";
 
 
@@ -52,8 +48,7 @@ export class Calculator {
         private readonly evaluator = new Evaluator(),
         private readonly buffer = new InputBuffer()
     ) {
-        this.display.render(this.buffer.toString()
-        );
+        this.display.render(this.buffer.toString());
     }
 
     /** 
@@ -71,183 +66,264 @@ export class Calculator {
         }
     }
 
-
     // 【Public】
-
     /** 
      * handle: KeyTokenを適切なハンドラへ渡す
      * @param   {KeyToken}          token  入力されたキー
      * @returns {void}   　　               押下されたtokenに応じて各処理を返す
      */
     public handle(token: KeyToken): void {
-        // （第一数入力前）負の数が押下された場合
-        if (this.state === CalcState.ready && token === "-") {
+        const bufferString = this.buffer.toString();
+        // 『ready』状態の時
+        if (this.state === CalcState.ready) {
+            // 第一数前の『-』押下時
+            if (token === "-") {
+            if (bufferString === "-") return; // 二重マイナス無視
+            this.buffer.clear();
             this.buffer.setNegative();
             this.display.render(this.buffer.toString());
             this.state = CalcState.InputtingFirst;
             return;
+            }
+            // 小数点押下時
+            if (token === ".") {
+                this.buffer.pushDigit(0);
+                this.buffer.pushDecimal();
+                this.display.render(this.buffer.toString());
+                this.state = CalcState.InputtingFirst;
+                return;
+            }
+            // ready状態で 『-』以外の演算子入力→『0(演算子)』と表示
+            const opReady = this.operator(token);
+            if (opReady) {
+                this.left = 0;
+                this.operatorType = opReady;
+                this.state = CalcState.OperatorEntered;
+                this.history = `0 ${opReady}`;
+                this.display.renderHistory(this.history);
+                this.display.render("0");
+                return;
+            }
         }
-        // 数字キーが押下された場合
+        // InputtingFirst 状態で 『-』を押下時
+        if (this.state === CalcState.InputtingFirst && token === "-") {
+            // マイナスの連続押下を無視
+            if (bufferString === "-") {
+                return; 
+            }
+        }
+        // 数字押下時
         if (token >= "0" && token <= "9") {
             this.handleDigit(Number(token));
             return;
         }
-        // 小数点キーが押下された場合
+        // 小数点押下時
         if (token === ".") {
             this.handleDecimalPoint();
             return;
         }
-        // イコールキーが押下された場合
+        // イコール押下時
         if (token === "=") {
             this.handleEqual();
             return;
         }
-        // クリアキーが押下された場合
+        // クリア押下時
         if (token === "C") {
             this.handleClear();
             return;
         }
-        // 演算子キーが押下された場合
+        // 演算子押下時
         const op = this.operator(token);
         if (op) {
             this.handleOperator(op);
-            return;
         }
     }
 
     // 各キーの入力後の処理
-
     /** 
-     * 数字キー 押下後の処理
+     * handleDigit: 　　　　　　　　　数字ボタン押下時の処理
+     * @param   {number}     d  　　入力された数値
+     * @returns {void}   　　       押下時に返す処理  
      */
     public handleDigit(d: number): void {
-        // 例外処理：『Error』表示後に数字ボタンを押下すると初期化される。
+        // 『Error』状態の場合は数字入力で復帰する
         if (this.state === CalcState.Error) {
             this.buffer.clear();
             this.state = CalcState.InputtingFirst;
         }
-        // 通常処理：
+        // 『ResultShown』(結果表示)状態の場合は新規入力に切り替える
         if (this.state === CalcState.ResultShown) {
             this.buffer.clear();
             this.left = null;
             this.state = CalcState.InputtingFirst;
         }
-
+        // バッファに数字を追加・表示する
         this.buffer.pushDigit(d);
         this.display.render(this.buffer.toString());
-
+        // 『ready』の場合『InputtingFirst』に移動する
         if (this.state === CalcState.ready) {
             this.state = CalcState.InputtingFirst;
         }
     }
 
     /** 
-     * 小数点キー　押下後の処理
+     * handleDecimalPoint: 　　　　　小数点ボタン押下時の処理
+     * @returns {void}   　　       押下時に返す処理  
      */
     public handleDecimalPoint(): void {
+        const bufferString = this.buffer.toString();
+        // 現在入力が『-』のみの状態かつ小数点を押した場合の特別対応
+        if (bufferString === "-") {
+            this.buffer.pushDigit(0);
+            this.buffer.pushDecimal();
+            this.display.render(this.buffer.toString());
+            return;
+        }
+        // 小数点の重複を防ぐ
+        if (bufferString.includes(".")) {
+            return;
+        }
+        // 通常の小数点入力
         this.buffer.pushDecimal();
         this.display.render(this.buffer.toString());
+        // 『ready』状態の場合『InputtingFirst』へ
+        if (this.state === CalcState.ready) {
+            this.state = CalcState.InputtingFirst;
+        }
     }
 
     /** 
-     * 演算子キー　押下後の処理
+     * handleOperator: 　　　　　　  　演算子ボタン押下時の処理
+     * @param   {Operation}   op   　入力された数値
+     * @returns {void}   　　        押下時に返す処理  
      */
     public handleOperator(op: Operation): void {
-        // 結果表示後に演算子が押下された場合
-        if (this.state === CalcState.ResultShown) {
-            this.state = CalcState.OperatorEntered;
-            this.operatorType = op;
-            this.history = `${this.left} ${op}`;
-            this.display.renderHistory(this.history);
-            this.buffer.clear();
-            return;
+        // 現在のバッファの値を数値へ変換
+        const bufferString = this.buffer.toString();
+
+        let num: number;
+        // 『-』『""』『0.』は『０』として扱う
+        if (bufferString === "-" || bufferString === "" || bufferString === "0.") {
+            num = 0;
+        } 
+        // それ以外
+        else {
+            num = Number(bufferString.replace(/\.$/, ""));
         }
-        // 最初の数値入力後に演算子が押下された場合
-        if (this.state === CalcState.InputtingFirst) {
-            const num = this.buffer.toNumber();
+        // 『ready』か『InputtingFirst』の状態の場合：今入力した数字を left に確定・演算子状態（OperatorEntered）へ遷移
+        if (this.state === CalcState.InputtingFirst || this.state === CalcState.ready) {
             this.left = num;
             this.operatorType = op;
             this.state = CalcState.OperatorEntered;
-    
+            // 履歴更新
             this.history = `${num} ${op}`;
             this.display.renderHistory(this.history);
-    
+            this.display.render(this.formatter.formatForDisplay(num));
             this.buffer.clear();
             return;
         }
-     // 演算子連打時（途中計算）
+
+        // 『ResultShown』の状態のとき：直前の計算結果（left）に対して演算子入力を開始
+        if (this.state === CalcState.ResultShown) {
+            this.state = CalcState.OperatorEntered;
+            this.operatorType = op;
+            this.history = `${this.left ?? 0} ${op}`;
+            this.display.renderHistory(this.history);
+            this.buffer.clear();
+            return;
+        }
+
+        // 『OperatorEntered』の状態の時：演算子連打・途中計算
         if (this.state === CalcState.OperatorEntered) {
-        const right = this.buffer.toNumber();
+            if (this.buffer.isEmpty()) {
+                // buffer空の場合：単に演算子を切り替える
+                this.operatorType = op;
+                this.history = `${this.left ?? 0} ${op}`;
+                this.display.renderHistory(this.history);
+                this.display.render(this.formatter.formatForDisplay(this.left ?? 0));
+                return;
+            }
 
-        const result = this.evaluator.compute(this.left!, this.operatorType!, right);
-        this.left = result;
-        // 次の演算子に更新
-        this.operatorType = op; 
-
-        this.display.render(this.formatter.formatForDisplay(result));
-
-        this.history = `${result} ${op}`;
-        this.display.renderHistory(this.history);
-
-        this.buffer.clear();
-        return;
+            // bufferに数字がある場合：計算を行い次へ
+            const right = bufferString === "-" ? 0 : Number(bufferString.replace(/\.$/, ""));
+            try {
+                const result = this.evaluator.compute(this.left!, this.operatorType!, right);
+                this.left = result;
+                this.operatorType = op;
+                this.display.render(this.formatter.formatForDisplay(result));
+                this.history = `${result} ${op}`;
+                this.display.renderHistory(this.history);
+                this.buffer.clear();
+            } catch (error) {
+                this.handleCalculationError(error);
+            }
+        }
     }
-}
-
 
     /** 
-     * イコールキー押下時の処理
+     * handleEqual: 　　　　　　イコールボタン押下時の処理
+     * @returns {void}   　　  押下時に返す処理       
      */
     public handleEqual(): void {
-        // すでに結果が表示されている場合は計算しない
+        // すでに『ResultShown』の状態の場合は何もしない
         if (this.state === CalcState.ResultShown) {
             return;
         }
-        // 
+        // 演算可能な条件でない場合は何も行わない（数字だけで『=』押下しても計算不可）
         if (!this.operatorType || this.left === null) {
             return;
         }
-        const right = this.buffer.toNumber();
-        // 履歴更新
+        // 右辺の取り出し（『-』のみは「0」・末尾の小数点は削除し数値化）
+        const right = this.buffer.toString() === "-" ? 0 : Number(this.buffer.toString().replace(/\.$/, ""));
+        // 履歴を表示エリアに反映
         this.history = `${this.left}${this.operatorType}${right}=`;
         this.display.renderHistory(this.history);
-
-        // 例外処理：割り算0除算時のエラー
+        // エラーを含んだ計算実行処理
         try {
             const result = this.evaluator.compute(this.left, this.operatorType, right);
-
             this.display.render(this.formatter.formatForDisplay(result));
             this.left = result;
             this.state = CalcState.ResultShown;
-        }
-        catch (error) {
-            // エラー時の表示：０除算
-            if(error instanceof DivideByZero){
-                this.display.render("エラー")
-            }
-            // エラー表示：そのほか
-            else{
-            this.display.render("Error");
-            }
-            // 状態：Errorになる
-            this.state = CalcState.Error;
-            // バッファのリセット
             this.buffer.clear();
+        } catch (error) {
+            this.handleCalculationError(error);
         }
     }
 
     /** 
-     * クリアーキー押下時の処理
+     * handleCalculationError: エラー内容の判別
+     * @param   {unknown}       error  エラー内容
+     * @returns {void}   　　           エラー内容応じ返す処理
+     */
+    private handleCalculationError(error: unknown):void {
+        // 『DivideByZero』のエラーの場合
+        if (error instanceof DivideByZero) {
+            this.display.render("エラー");
+        } 
+        // それ以外のエラー
+        else {
+            this.display.render("Error");
+            console.error(error);
+        }
+        // 状態を『Error』へ
+        this.state = CalcState.Error;
+        // 入力をクリア
+        this.buffer.clear();
+    }
+
+    /** 
+     * handleClear: 　　　　　　クリアボタン押下時の処理
+     * @returns {void}   　　  押下時に返す処理       
      */
     public handleClear(): void {
-        // バッファの初期化
+        // 入力クリア
         this.buffer.clear();
-        // 『０』を表示
         this.display.render("0");
-        // 履歴更新：
         this.display.clearHistory();
         this.history = "";
-        // ready状態に移行
+        // 状態を『ready』へ
         this.state = CalcState.ready;
+        this.left = null;
+        this.operatorType = null;
     }
 }
