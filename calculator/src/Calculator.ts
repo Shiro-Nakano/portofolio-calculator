@@ -17,7 +17,7 @@
  * +handleEqual()                  void       イコールボタン押下時の処理のメソッド
  * +handleCalculationError(error: unknown)  void    エラー内容の判定のメソッド
  * +handleClear()                  void 　 　  クリアボタン押下時の処理のメソッド
- */
+ */ 
 
 // クラスのimport
 import type { IDisplay } from "../src/Display/IDisplay";
